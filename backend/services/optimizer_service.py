@@ -51,10 +51,10 @@ class OptimizerService:
             try:
                 if hasattr(self._member3_module, "optimize"):
                     res = self._member3_module.optimize(req.model_dump())
-                    return self._format_and_save(res, req, db)
+                    return await self._format_and_save_async(res, req, db)
                 elif hasattr(self._member3_module, "run_milp_optimization"):
                     res = self._member3_module.run_milp_optimization(req.model_dump())
-                    return self._format_and_save(res, req, db)
+                    return await self._format_and_save_async(res, req, db)
             except Exception as e:
                 logger.warning(f"Member 3 optimizer execution error ({e}); using fallback solver.")
 
