@@ -8,6 +8,7 @@ from backend.schemas.status import SystemStatusResponse, WeatherInfo, SystemMetr
 from backend.services.weather_service import weather_service
 from backend.services.battery_service import battery_service
 from backend.services.fuel_service import fuel_service
+from backend.services.location_service import location_service
 
 router = APIRouter(tags=["Status & Telemetry"])
 
@@ -16,8 +17,13 @@ router = APIRouter(tags=["Status & Telemetry"])
 async def get_system_status(db: Session = Depends(get_db)):
     """Returns comprehensive microgrid operational status and live metrics."""
     try:
-        # Fetch weather
-        weather = await weather_service.get_current_weather(db=db)
+        active_loc = location_service.get_active_location()
+        # Fetch weather for active location
+        weather = await weather_service.get_current_weather(
+            db=db,
+            latitude=active_loc.latitude,
+            longitude=active_loc.longitude,
+        )
 
         # Fetch latest energy reading or default
         energy = db.query(EnergyReading).order_by(EnergyReading.timestamp.desc()).first()
@@ -99,7 +105,9 @@ async def get_system_status(db: Session = Depends(get_db)):
             nextOptimizationInSeconds=485,
             weather=weather,
             metrics=metrics,
-            liveDispatch=live_disp
+            liveDispatch=live_disp,
+            activeLocation=active_loc,
+            weatherSource=weather.source,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to compile system status: {str(e)}")
@@ -109,10 +117,17 @@ async def get_system_status(db: Session = Depends(get_db)):
 async def refresh_weather(db: Session = Depends(get_db)):
     """Forces an immediate refresh of meteorological telemetry from Open-Meteo."""
     try:
-        weather = await weather_service.get_current_weather(db=db, force_refresh=True)
+        active_loc = location_service.get_active_location()
+        weather = await weather_service.get_current_weather(
+            db=db,
+            force_refresh=True,
+            latitude=active_loc.latitude,
+            longitude=active_loc.longitude,
+        )
         return {
             "status": "success",
-            "weather": weather.model_dump()
+            "weather": weather.model_dump(),
+            "weatherSource": weather.source,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to refresh weather: {str(e)}")

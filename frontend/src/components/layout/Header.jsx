@@ -10,11 +10,22 @@ import {
   AlertTriangle,
   Info,
   X,
+  MapPin,
 } from 'lucide-react';
 import { formatTime, formatCountdown } from '../../utils/formatters';
 import { apiService } from '../../services/api';
+import { useSystemStatus } from '../../hooks/useSystemStatus';
+import { LocationSelectorModal } from '../common/LocationSelectorModal';
 
-export const Header = ({ systemStatus }) => {
+export const Header = ({ systemStatus: propStatus, onRefreshStatus }) => {
+  const {
+    status: contextStatus,
+    activeLocation,
+    weatherSource,
+    setIsLocationModalOpen,
+  } = useSystemStatus();
+
+  const systemStatus = propStatus || contextStatus;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [countdown, setCountdown] = useState(systemStatus?.nextOptimizationInSeconds || 485);
   const [alerts, setAlerts] = useState([]);
@@ -43,6 +54,9 @@ export const Header = ({ systemStatus }) => {
   const handleRefreshWeather = async () => {
     setIsRefreshingWeather(true);
     await apiService.refreshWeather();
+    if (onRefreshStatus) {
+      await onRefreshStatus();
+    }
     setTimeout(() => setIsRefreshingWeather(false), 600);
   };
 
@@ -81,6 +95,26 @@ export const Header = ({ systemStatus }) => {
           <Clock className="w-3.5 h-3.5 text-cyan-400" />
           <span>{formatTime(currentTime)}</span>
         </div>
+
+        {/* Active Location Selector Button */}
+        <button
+          onClick={() => setIsLocationModalOpen(true)}
+          title="Click to switch rural microgrid location"
+          className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-cyan-950/50 hover:to-cyan-900/60 px-3 py-1.5 rounded-lg border border-slate-800 hover:border-cyan-500/50 text-xs transition-all cursor-pointer shadow-sm group"
+        >
+          <MapPin className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform shrink-0" />
+          <div className="text-left leading-tight">
+            <span className="font-semibold text-slate-200 group-hover:text-cyan-300">
+              {activeLocation?.name || 'Baramati Rural'}
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono hidden xl:inline ml-1">
+              ({activeLocation?.state || 'Maharashtra'})
+            </span>
+          </div>
+          <span className="text-[10px] font-mono font-medium text-cyan-400 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
+            Switch
+          </span>
+        </button>
       </div>
 
       {/* Center/Right: Optimization Timers & Weather & Alerts */}
@@ -111,6 +145,20 @@ export const Header = ({ systemStatus }) => {
               {weather.solarIrradianceWm2} W/m²
             </span>
           </div>
+
+          {/* Weather Source Badge */}
+          <span
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+              weatherSource === 'LIVE'
+                ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                : weatherSource === 'CACHED'
+                ? 'bg-amber-950/80 text-amber-400 border border-amber-500/30'
+                : 'bg-indigo-950/80 text-indigo-400 border border-indigo-500/30'
+            }`}
+          >
+            {weatherSource}
+          </span>
+
           <button
             onClick={handleRefreshWeather}
             title="Refresh weather data"
@@ -176,6 +224,9 @@ export const Header = ({ systemStatus }) => {
           )}
         </div>
       </div>
+
+      {/* Dynamic Rural Location Selector Modal */}
+      <LocationSelectorModal />
     </header>
   );
 };

@@ -58,8 +58,8 @@ class OpenMeteoClient:
         self,
         base_url: str = OPEN_METEO_BASE_URL,
         timeout_seconds: float = 5.0,
-        default_latitude: float = -1.2921,  # Example: East Africa / Nairobi off-grid corridor
-        default_longitude: float = 36.8219,
+        default_latitude: float = 18.15,  # Baramati Rural, Maharashtra, India
+        default_longitude: float = 74.58,
     ):
         self.base_url = base_url
         self.timeout_seconds = timeout_seconds

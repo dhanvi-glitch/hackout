@@ -18,6 +18,11 @@ export const formatCurrency = (val) => {
   return `$${Number(val).toFixed(2)}`;
 };
 
+export const formatINR = (val) => {
+  if (val === undefined || val === null) return '₹0';
+  return `₹${Math.round(Number(val)).toLocaleString('en-IN')}`;
+};
+
 export const formatFuel = (liters) => {
   if (liters === undefined || liters === null) return '0 L';
   return `${Math.round(liters)} L`;

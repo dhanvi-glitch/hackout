@@ -10,7 +10,9 @@ import {
   BrainCircuit,
   Settings,
   ShieldCheck,
+  MapPin,
 } from 'lucide-react';
+import { useSystemStatus } from '../../hooks/useSystemStatus';
 
 const navItems = [
   { name: 'Command Center', path: '/', icon: LayoutDashboard },
@@ -24,6 +26,7 @@ const navItems = [
 ];
 
 export const Sidebar = () => {
+  const { activeLocation } = useSystemStatus();
   return (
     <aside className="w-64 bg-[#131B29] border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 z-30">
       <div>
@@ -65,14 +68,25 @@ export const Sidebar = () => {
       </div>
 
       {/* Footer info badge */}
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-2">
         <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-800/80">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
             <span className="flex items-center gap-1 text-[11px] font-mono text-slate-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> P0 Priority Protected
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> P0 Protected
             </span>
+            <span className="text-[10px] text-emerald-400 font-mono">100%</span>
           </div>
-          <p className="text-[10px] text-slate-500">Off-Grid Community Grid #04</p>
+          <div className="pt-2 border-t border-slate-800/60 flex items-center gap-1.5 text-slate-300">
+            <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-slate-200 truncate">
+                {activeLocation?.name || 'Baramati Rural'}
+              </p>
+              <p className="text-[10px] text-slate-500 truncate">
+                {activeLocation?.district || 'Pune'}, {activeLocation?.state || 'Maharashtra'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

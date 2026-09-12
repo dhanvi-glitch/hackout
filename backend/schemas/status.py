@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from pydantic import BaseModel, Field
+from backend.schemas.location import LocationInfo
 
 
 class WeatherInfo(BaseModel):
@@ -10,6 +11,7 @@ class WeatherInfo(BaseModel):
     windSpeedMs: float = 7.2
     forecastWarning: Optional[str] = None
     lastUpdated: Optional[str] = None
+    source: str = "LIVE"
 
 
 class SystemMetrics(BaseModel):
@@ -68,3 +70,5 @@ class SystemStatusResponse(BaseModel):
     weather: WeatherInfo = Field(default_factory=WeatherInfo)
     metrics: SystemMetrics = Field(default_factory=SystemMetrics)
     liveDispatch: LiveDispatch = Field(default_factory=LiveDispatch)
+    activeLocation: Optional[LocationInfo] = None
+    weatherSource: str = "LIVE"

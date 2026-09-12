@@ -69,7 +69,7 @@ class WeatherManager:
                 latitude=latitude,
                 longitude=longitude,
             )
-            self._save_forecast_cache(series)
+            self._save_forecast_cache(series, latitude=latitude, longitude=longitude)
             return series
         except Exception as e:
             logger.warning(f"Open-Meteo forecast failed: {e}")
@@ -82,15 +82,15 @@ class WeatherManager:
                 latitude=latitude,
                 longitude=longitude,
             )
-            self._save_forecast_cache(series)
+            self._save_forecast_cache(series, latitude=latitude, longitude=longitude)
             return series
         except Exception as e:
             logger.warning(f"NASA POWER forecast failed: {e}")
 
         # Step 3: Attempt Cached Forecast
-        cached_series = self._load_forecast_cache(duration_hours)
+        cached_series = self._load_forecast_cache(duration_hours, latitude=latitude, longitude=longitude)
         if cached_series is not None:
-            logger.info("Using cached weather forecast.")
+            logger.info("Using cached weather forecast matching requested coordinates.")
             return cached_series
 
         # Step 4: Synthetic Default Fallback
@@ -107,39 +107,64 @@ class WeatherManager:
         """
         try:
             snap = self.open_meteo.fetch_current(latitude=latitude, longitude=longitude)
-            self._save_current_cache(snap)
+            self._save_current_cache(snap, latitude=latitude, longitude=longitude)
             return snap
         except Exception as e:
             logger.warning(f"Live current weather fetch failed: {e}")
 
-        # Check cache
-        cached_snap = self._load_current_cache()
+        # Check cache with coordinate matching
+        cached_snap = self._load_current_cache(latitude=latitude, longitude=longitude)
         if cached_snap is not None:
             return cached_snap
 
         # Fallback snapshot
         return self._generate_synthetic_current_fallback()
 
-    def _save_forecast_cache(self, series: WeatherForecastSeries):
+    def _save_forecast_cache(
+        self,
+        series: WeatherForecastSeries,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ):
         try:
             data = series.to_dict()
+            if latitude is not None:
+                data["latitude"] = float(latitude)
+            if longitude is not None:
+                data["longitude"] = float(longitude)
             with open(self.forecast_cache_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to persist weather cache: {e}")
 
-    def _load_forecast_cache(self, duration_hours: int) -> Optional[WeatherForecastSeries]:
+    def _load_forecast_cache(
+        self,
+        duration_hours: int,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ) -> Optional[WeatherForecastSeries]:
         if not self.forecast_cache_file.exists():
             return None
         try:
             with open(self.forecast_cache_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
+            # Coordinate comparison with strict 0.01 tolerance
+            cached_lat = data.get("latitude")
+            cached_lon = data.get("longitude")
+            if latitude is not None:
+                if cached_lat is None or abs(float(cached_lat) - float(latitude)) > 0.01:
+                    logger.info(f"Cached forecast lat ({cached_lat}) != requested ({latitude}) > 0.01°. Rejecting stale cache.")
+                    return None
+            if longitude is not None:
+                if cached_lon is None or abs(float(cached_lon) - float(longitude)) > 0.01:
+                    logger.info(f"Cached forecast lon ({cached_lon}) != requested ({longitude}) > 0.01°. Rejecting stale cache.")
+                    return None
+
             created_at = datetime.fromisoformat(data.get("created_at", "").replace("Z", "+00:00"))
             age_hours = (datetime.now(timezone.utc) - created_at).total_seconds() / 3600.0
             if age_hours > self.cache_ttl_hours:
                 logger.info(f"Cached weather expired ({age_hours:.1f}h > {self.cache_ttl_hours}h).")
-                # Still allowed as tertiary fallback if live failed, but marked CACHED
             
             intervals = []
             target_n = duration_hours * 4
@@ -171,19 +196,46 @@ class WeatherManager:
             logger.warning(f"Failed to parse cached weather: {e}")
             return None
 
-    def _save_current_cache(self, snap: WeatherSnapshot):
+    def _save_current_cache(
+        self,
+        snap: WeatherSnapshot,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ):
         try:
+            d = snap.to_dict()
+            if latitude is not None:
+                d["latitude"] = float(latitude)
+            if longitude is not None:
+                d["longitude"] = float(longitude)
             with open(self.current_cache_file, "w", encoding="utf-8") as f:
-                json.dump(snap.to_dict(), f, indent=2)
+                json.dump(d, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to write current weather cache: {e}")
 
-    def _load_current_cache(self) -> Optional[WeatherSnapshot]:
+    def _load_current_cache(
+        self,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ) -> Optional[WeatherSnapshot]:
         if not self.current_cache_file.exists():
             return None
         try:
             with open(self.current_cache_file, "r", encoding="utf-8") as f:
                 d = json.load(f)
+
+            # Coordinate tolerance 0.01 deg
+            cached_lat = d.get("latitude")
+            cached_lon = d.get("longitude")
+            if latitude is not None:
+                if cached_lat is None or abs(float(cached_lat) - float(latitude)) > 0.01:
+                    logger.info(f"Cached current weather lat ({cached_lat}) != requested ({latitude}) > 0.01°. Rejecting stale cache.")
+                    return None
+            if longitude is not None:
+                if cached_lon is None or abs(float(cached_lon) - float(longitude)) > 0.01:
+                    logger.info(f"Cached current weather lon ({cached_lon}) != requested ({longitude}) > 0.01°. Rejecting stale cache.")
+                    return None
+
             return WeatherSnapshot(
                 timestamp=d["timestamp"],
                 source=WeatherSource.CACHED,

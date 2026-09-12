@@ -33,9 +33,9 @@ export const apiService = {
   },
 
   // GET /api/forecast
-  getForecast: async () => {
+  getForecast: async (params) => {
     try {
-      const response = await apiClient.get('/forecast');
+      const response = await apiClient.get('/forecast', { params });
       return response.data;
     } catch (err) {
       console.warn('API /forecast unreachable, returning mock data:', err.message);
@@ -51,6 +51,17 @@ export const apiService = {
     } catch (err) {
       console.warn('API /battery unreachable, returning mock data:', err.message);
       return batteryDetailsMock;
+    }
+  },
+
+  // POST /api/battery/storm-mode
+  toggleStormMode: async (active) => {
+    try {
+      const response = await apiClient.post('/battery/storm-mode', { active });
+      return response.data;
+    } catch (err) {
+      console.warn('API /battery/storm-mode unreachable:', err.message);
+      return { status: 'success', isStormModeActive: active };
     }
   },
 
@@ -152,5 +163,100 @@ export const apiService = {
         }
       };
     }
-  }
+  },
+
+  // GET /api/location
+  getLocation: async () => {
+    try {
+      const response = await apiClient.get('/location');
+      return response.data;
+    } catch (err) {
+      console.warn('API /location unreachable, returning fallback defaults:', err.message);
+      return {
+        activeLocation: {
+          id: 'baramati',
+          name: 'Baramati Rural',
+          district: 'Pune District',
+          state: 'Maharashtra',
+          country: 'India',
+          latitude: 18.15,
+          longitude: 74.58,
+          climate: 'Semi-Arid Agro Basin',
+          community: 'Farming & Agro-Processing Microgrid',
+        },
+        presets: [
+          {
+            id: 'baramati',
+            name: 'Baramati Rural',
+            district: 'Pune District',
+            state: 'Maharashtra',
+            country: 'India',
+            latitude: 18.15,
+            longitude: 74.58,
+            climate: 'Semi-Arid Agro Basin',
+            community: 'Farming & Agro-Processing Microgrid',
+          },
+          {
+            id: 'dhordo',
+            name: 'Dhordo, Kutch',
+            district: 'Kutch District',
+            state: 'Gujarat',
+            country: 'India',
+            latitude: 23.83,
+            longitude: 69.57,
+            climate: 'Arid Salt Marsh & High Solar Desert',
+            community: 'Remote Border Crafts & Tourism Microgrid',
+          },
+          {
+            id: 'rameshwaram',
+            name: 'Rameshwaram Coastal',
+            district: 'Ramanathapuram District',
+            state: 'Tamil Nadu',
+            country: 'India',
+            latitude: 9.28,
+            longitude: 79.31,
+            climate: 'Tropical Maritime & High Wind Corridor',
+            community: 'Coastal Fishing & Desalination Microgrid',
+          },
+          {
+            id: 'hampi',
+            name: 'Hampi Rural',
+            district: 'Vijayanagara District',
+            state: 'Karnataka',
+            country: 'India',
+            latitude: 15.33,
+            longitude: 76.46,
+            climate: 'Hot Semi-Arid Plateau',
+            community: 'Heritage Tourism & Agrarian Cluster',
+          },
+          {
+            id: 'pokhran',
+            name: 'Pokhran Thar Microgrid',
+            district: 'Jaisalmer District',
+            state: 'Rajasthan',
+            country: 'India',
+            latitude: 26.92,
+            longitude: 71.91,
+            climate: 'Extreme Arid Thar Desert',
+            community: 'Off-Grid Pastoral Desert Settlement',
+          },
+        ],
+      };
+    }
+  },
+
+  // POST /api/location
+  updateLocation: async (payload) => {
+    try {
+      const response = await apiClient.post('/location', payload);
+      return response.data;
+    } catch (err) {
+      console.warn('API /location unreachable, executing client fallback:', err.message);
+      return {
+        status: 'success',
+        activeLocation: payload,
+        weatherSource: 'FALLBACK',
+      };
+    }
+  },
 };

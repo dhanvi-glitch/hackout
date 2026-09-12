@@ -30,6 +30,7 @@ class OptimizeRequest(BaseModel):
     min_soc: float = Field(default=20.0, ge=0, le=100, description="Minimum reserve SOC (%)")
     max_soc: float = Field(default=95.0, ge=0, le=100, description="Maximum operational SOC (%)")
     fuel_remaining: Optional[float] = Field(default=360.0, description="Remaining diesel fuel in liters")
+    optimization_mode: Optional[str] = Field(default="balanced", description="Optimization mode: cost_saver, balanced, green")
 
     @model_validator(mode="before")
     @classmethod
@@ -40,6 +41,10 @@ class OptimizeRequest(BaseModel):
         normalized: Dict[str, Any] = dict(data)
         
         # Support camelCase aliases sent by Member 1's frontend
+        if "optimizationMode" in normalized and "optimization_mode" not in normalized:
+            normalized["optimization_mode"] = str(normalized["optimizationMode"])
+        if "mode" in normalized and "optimization_mode" not in normalized:
+            normalized["optimization_mode"] = str(normalized["mode"])
         if "currentDemand" in normalized and "demand_kw" not in normalized:
             normalized["demand_kw"] = float(normalized["currentDemand"])
         if "solarAvailable" in normalized and "solar_available_kw" not in normalized:

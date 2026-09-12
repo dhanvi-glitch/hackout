@@ -3,6 +3,7 @@ import { useSystemStatus } from '../hooks/useSystemStatus';
 import { KPICard } from '../components/dashboard/KPICard';
 import { EnergyFlow } from '../components/dashboard/EnergyFlow';
 import { CurrentDispatchPanel } from '../components/dashboard/CurrentDispatchPanel';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { LoadingSpinner, ErrorState } from '../components/common/Badge';
 import {
   Zap,
@@ -13,6 +14,7 @@ import {
   Leaf,
   Fuel,
   ShieldCheck,
+  MapPin,
 } from 'lucide-react';
 import {
   formatPower,
@@ -22,7 +24,7 @@ import {
 } from '../utils/formatters';
 
 export const Dashboard = () => {
-  const { status, loading, error, refetch } = useSystemStatus();
+  const { status, activeLocation, setIsLocationModalOpen, loading, error, refetch } = useSystemStatus();
 
   if (loading && !status) {
     return <LoadingSpinner label="Connecting to OptiGrid Microgrid Telemetry..." />;
@@ -44,6 +46,41 @@ export const Dashboard = () => {
             Real-time telemetry, live power bus flow, and automated optimal dispatch
           </p>
         </div>
+      </div>
+
+      {/* Active Location Banner */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 shrink-0">
+            <MapPin className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-100">
+                {activeLocation?.name || 'Baramati Rural'}
+              </h3>
+              <span className="text-xs text-slate-400">
+                • {activeLocation?.district || 'Pune District'}, {activeLocation?.state || 'Maharashtra'}
+              </span>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/20">
+                {activeLocation?.latitude != null && activeLocation?.longitude != null
+                  ? `${Number(activeLocation.latitude).toFixed(2)}° N, ${Number(activeLocation.longitude).toFixed(2)}° E`
+                  : '18.15° N, 74.58° E'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {activeLocation?.climate || 'Semi-Arid Agro Basin'} • {activeLocation?.community || 'Off-Grid Microgrid'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsLocationModalOpen(true)}
+          className="self-start sm:self-center px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+        >
+          Change Site →
+        </button>
       </div>
 
       {/* 8 KPI Cards Grid */}
@@ -127,10 +164,14 @@ export const Dashboard = () => {
       {/* Main Grid: Live Energy Flow (2 cols) & Current Dispatch Panel (1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <EnergyFlow metrics={m} />
+          <ErrorBoundary>
+            <EnergyFlow metrics={m} />
+          </ErrorBoundary>
         </div>
         <div className="lg:col-span-1">
-          <CurrentDispatchPanel dispatch={status?.liveDispatch} />
+          <ErrorBoundary>
+            <CurrentDispatchPanel dispatch={status?.liveDispatch} />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

@@ -98,6 +98,43 @@ class OptimizationInput(BaseModel):
         if "fuelRemaining" in normalized and "fuel_remaining" not in normalized:
             normalized["fuel_remaining"] = float(normalized["fuelRemaining"])
 
+        # 2. Member 4 Data Module Structured Dictionary Support
+        if "p0_forecast" in normalized and "p0_demand" not in normalized:
+            normalized["p0_demand"] = normalized["p0_forecast"]
+        if "p1_forecast" in normalized and "p1_demand" not in normalized:
+            normalized["p1_demand"] = normalized["p1_forecast"]
+        if "p2_forecast" in normalized and "p2_demand" not in normalized:
+            normalized["p2_demand"] = normalized["p2_forecast"]
+
+        if "battery" in normalized and isinstance(normalized["battery"], dict):
+            b_dict = normalized["battery"]
+            if "capacity_kwh" in b_dict and "battery_capacity" not in normalized:
+                normalized["battery_capacity"] = float(b_dict["capacity_kwh"])
+            if "current_soc_pct" in b_dict and "initial_battery_soc" not in normalized:
+                normalized["initial_battery_soc"] = float(b_dict["current_soc_pct"])
+            elif "soc_pct" in b_dict and "initial_battery_soc" not in normalized:
+                normalized["initial_battery_soc"] = float(b_dict["soc_pct"])
+            if "min_soc_pct" in b_dict and "min_soc" not in normalized:
+                normalized["min_soc"] = float(b_dict["min_soc_pct"])
+            if "max_soc_pct" in b_dict and "max_soc" not in normalized:
+                normalized["max_soc"] = float(b_dict["max_soc_pct"])
+
+        if "diesel" in normalized and isinstance(normalized["diesel"], dict):
+            d_dict = normalized["diesel"]
+            if "rated_capacity_kw" in d_dict and "diesel_capacity_kw" not in normalized:
+                normalized["diesel_capacity_kw"] = float(d_dict["rated_capacity_kw"])
+            if "fuel_remaining_l" in d_dict and "fuel_remaining" not in normalized:
+                normalized["fuel_remaining"] = float(d_dict["fuel_remaining_l"])
+            if "fuel_price_per_l" in d_dict and "fuel_price" not in normalized:
+                normalized["fuel_price"] = float(d_dict["fuel_price_per_l"])
+            if "is_available" in d_dict and "diesel_available" not in normalized:
+                normalized["diesel_available"] = bool(d_dict["is_available"])
+
+        if "grid_flags" in normalized and isinstance(normalized["grid_flags"], dict):
+            g_dict = normalized["grid_flags"]
+            if "storm_mode" in g_dict and "storm_mode" not in normalized:
+                normalized["storm_mode"] = bool(g_dict["storm_mode"])
+
         # Broadcast scalar lists to 96 steps if needed
         for key in ["demand_forecast", "solar_forecast", "wind_forecast", "p0_demand", "p1_demand", "p2_demand"]:
             if key in normalized and normalized[key] is not None:

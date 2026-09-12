@@ -6,7 +6,24 @@ import { formatPower, formatPercent, formatCurrency, formatCO2 } from '../../uti
 export const DispatchResult = ({ result }) => {
   if (!result) return null;
 
-  const { dispatch, metrics } = result;
+  const rawDispatch = result.dispatch || {};
+  const dispatch = {
+    solarKw: Number(rawDispatch.solarKw ?? result.solar_kw ?? 0.0),
+    windKw: Number(rawDispatch.windKw ?? result.wind_kw ?? 0.0),
+    batteryKw: Number(rawDispatch.batteryKw ?? result.battery_kw ?? 0.0),
+    dieselKw: Number(rawDispatch.dieselKw ?? result.diesel_kw ?? 0.0),
+  };
+
+  const rawMetrics = result.metrics || {};
+  const metrics = {
+    totalGenerationKw: Number(rawMetrics.totalGenerationKw ?? result.total_supply_kw ?? (dispatch.solarKw + dispatch.windKw + dispatch.batteryKw + dispatch.dieselKw)),
+    unmetDemandKw: Number(rawMetrics.unmetDemandKw ?? result.unmet_demand_kw ?? 0.0),
+    renewablePercent: Number(rawMetrics.renewablePercent ?? result.renewable_percentage ?? 0.0),
+    estimatedCostPerHour: Number(rawMetrics.estimatedCostPerHour ?? result.cost_per_hour ?? 0.0),
+    fuelConsumptionLitersHour: Number(rawMetrics.fuelConsumptionLitersHour ?? result.fuel_burn_lh ?? 0.0),
+    co2EmissionsKgHour: Number(rawMetrics.co2EmissionsKgHour ?? result.co2_emissions_kgh ?? 0.0),
+    reliabilityPercent: Number(rawMetrics.reliabilityPercent ?? result.reliability_pct ?? 100.0),
+  };
 
   return (
     <div className="bg-[#131B29] border border-cyan-500/30 rounded-xl p-5 shadow-2xl space-y-5 animate-fadeIn">
@@ -93,12 +110,12 @@ export const DispatchResult = ({ result }) => {
 
         <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800 text-center">
           <span className="text-[11px] text-slate-400 block mb-1">Fuel Consumption</span>
-          <span className="font-mono font-bold text-slate-200 text-sm">{metrics.fuelConsumptionLitersHour} L/h</span>
+          <span className="font-mono font-bold text-slate-200 text-sm">{metrics.fuelConsumptionLitersHour.toFixed(1)} L/h</span>
         </div>
 
         <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800 text-center">
           <span className="text-[11px] text-slate-400 block mb-1">CO2 Emissions</span>
-          <span className="font-mono font-bold text-slate-200 text-sm">{metrics.co2EmissionsKgHour} kg/h</span>
+          <span className="font-mono font-bold text-slate-200 text-sm">{metrics.co2EmissionsKgHour.toFixed(1)} kg/h</span>
         </div>
 
         <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800 text-center col-span-2 sm:col-span-1">

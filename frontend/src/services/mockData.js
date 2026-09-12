@@ -364,6 +364,70 @@ export const runMockSimulation = ({ scenario, severity, durationHours }) => {
       break;
   }
 
+  // Comparative Mock Engine
+  const dur = durationHours || 12;
+  const withoutCost = Math.round(1850 + addDiesel * 90 + (p2 < 50 ? 800 : 200));
+  const withCost = Math.round(withoutCost * 0.62);
+  const estSavings = withoutCost - withCost;
+  const withoutDieselL = parseFloat(addDiesel) + 18.0;
+  const withDieselL = Math.round(withoutDieselL * 0.45 * 10) / 10;
+  const withoutGrid = Math.round(dur * 18.5);
+  const withGrid = Math.round(dur * 12.0);
+  const withoutCo2 = Math.round((withoutDieselL * 2.68 + withoutGrid * 0.82) * 10) / 10;
+  const withCo2 = Math.round((withDieselL * 2.68 + withGrid * 0.82) * 10) / 10;
+  const withoutShed = p0 < 100 ? 35.0 : (p2 < 40 ? 18.0 : 0.0);
+  const withShed = 0.0;
+
+  const withoutOptimization = {
+    grid_usage_kwh: withoutGrid,
+    diesel_usage_kwh: Math.round(withoutDieselL * 3.2),
+    diesel_liters: withoutDieselL,
+    renewable_usage_kwh: Math.round(dur * 22.0),
+    total_cost_inr: withoutCost,
+    co2_emissions_kg: withoutCo2,
+    load_shed_kwh: withoutShed,
+    reliability_pct: withoutShed > 0 ? 88.5 : 97.0,
+    p0_reliability_pct: p0,
+    p1_served_pct: p1,
+    p2_served_pct: p2,
+  };
+
+  const withOptigrid = {
+    grid_usage_kwh: withGrid,
+    diesel_usage_kwh: Math.round(withDieselL * 3.2),
+    diesel_liters: withDieselL,
+    renewable_usage_kwh: Math.round(dur * 26.5),
+    total_cost_inr: withCost,
+    co2_emissions_kg: withCo2,
+    load_shed_kwh: withShed,
+    reliability_pct: 100.0,
+    p0_reliability_pct: 100.0,
+    p1_served_pct: 96.0,
+    p2_served_pct: 82.0,
+  };
+
+  const comparison = {
+    estimated_savings_inr: estSavings,
+    savings_pct: Math.round((estSavings / withoutCost) * 1000) / 10,
+    diesel_saved_liters: Math.round((withoutDieselL - withDieselL) * 10) / 10,
+    diesel_saved_pct: Math.round(((withoutDieselL - withDieselL) / withoutDieselL) * 1000) / 10,
+    grid_saved_kwh: withoutGrid - withGrid,
+    grid_saved_pct: Math.round(((withoutGrid - withGrid) / withoutGrid) * 1000) / 10,
+    co2_saved_kg: Math.round((withoutCo2 - withCo2) * 10) / 10,
+    co2_saved_pct: Math.round(((withoutCo2 - withCo2) / withoutCo2) * 1000) / 10,
+    reliability_improvement_pct: Math.round((100.0 - withoutOptimization.reliability_pct) * 10) / 10,
+  };
+
+  const chartData = [
+    { metric: 'Cost (₹100)', WithoutOptimization: Math.round(withoutCost / 100), WithOptiGrid: Math.round(withCost / 100), unit: '₹100' },
+    { metric: 'Diesel (L)', WithoutOptimization: withoutDieselL, WithOptiGrid: withDieselL, unit: 'L' },
+    { metric: 'Grid (kWh)', WithoutOptimization: withoutGrid, WithOptiGrid: withGrid, unit: 'kWh' },
+    { metric: 'CO2 (kg)', WithoutOptimization: withoutCo2, WithOptiGrid: withCo2, unit: 'kg' },
+    { metric: 'Load Shed (kWh)', WithoutOptimization: withoutShed, WithOptiGrid: withShed, unit: 'kWh' },
+  ];
+
+  const aiExplanation = `During this ${dur}h ${scenario.replace('_', ' ')} shock (${severity}% severity), traditional uncoordinated dispatch drained battery storage without peak-tariff foresight, burning ${withoutDieselL.toFixed(1)} L of diesel and drawing ${withoutGrid} kWh from the grid, accumulating ₹${withoutCost.toLocaleString()} in operating costs with ${withoutShed} kWh unserved load. OptiGrid applied predictive MPC arbitration: preserving a 35% battery buffer, avoiding peak grid tariffs, and smartly scheduling deferrable loads. This saved ${comparison.diesel_saved_liters} L of diesel, slashed CO2 by ${comparison.co2_saved_kg} kg, and delivered ₹${estSavings.toLocaleString()} in net savings (${comparison.savings_pct}%) with 100% life-critical reliability.`;
+
   return {
     scenario,
     severity,
@@ -377,6 +441,11 @@ export const runMockSimulation = ({ scenario, severity, durationHours }) => {
       additionalDieselLiters: addDiesel,
       additionalCo2Kg: addCo2,
       costDifferenceDollars: costDiff,
-    }
+    },
+    withoutOptimization,
+    withOptigrid,
+    comparison,
+    aiExplanation,
+    chartData,
   };
 };

@@ -1,13 +1,44 @@
 import math
 import random
+import logging
 from typing import List
 from backend.schemas.forecast import ForecastInterval
+
+logger = logging.getLogger(__name__)
 
 
 class ForecastService:
     """Generates 24-hour ahead microgrid operational forecasts at 15-minute resolution (96 intervals)."""
 
-    def generate_24h_forecast(self) -> List[ForecastInterval]:
+    def generate_24h_forecast(
+        self,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ) -> List[ForecastInterval]:
+        try:
+            from data import get_api_forecast_payload
+            if latitude is None or longitude is None:
+                try:
+                    from backend.services.location_service import location_service
+                    loc = location_service.get_active_location()
+                    latitude = loc.latitude
+                    longitude = loc.longitude
+                except Exception:
+                    pass
+
+            raw_intervals = get_api_forecast_payload(
+                duration_hours=24,
+                latitude=latitude,
+                longitude=longitude,
+            )
+            if raw_intervals and len(raw_intervals) == 96:
+                return [ForecastInterval(**item) for item in raw_intervals]
+        except Exception as e:
+            logger.warning(f"Error invoking Member 4 forecast service ({e}); utilizing baseline generator.")
+
+        return self._fallback_generate_24h_forecast()
+
+    def _fallback_generate_24h_forecast(self) -> List[ForecastInterval]:
         intervals: List[ForecastInterval] = []
 
         for i in range(96):

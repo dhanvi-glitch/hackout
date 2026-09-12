@@ -102,5 +102,8 @@ class ConnectionManager:
     async def broadcast_alert_created(self, alert: Dict[str, Any]):
         await self.broadcast("ALERT_CREATED", alert)
 
+    async def broadcast_location_changed(self, location_data: Dict[str, Any]):
+        await self.broadcast("LOCATION_CHANGED", location_data)
+
 
 ws_manager = ConnectionManager()

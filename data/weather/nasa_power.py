@@ -33,8 +33,8 @@ class NasaPowerClient:
         self,
         base_url: str = NASA_POWER_BASE_URL,
         timeout_seconds: float = 6.0,
-        default_latitude: float = -1.2921,
-        default_longitude: float = 36.8219,
+        default_latitude: float = 18.15,
+        default_longitude: float = 74.58,
     ):
         self.base_url = base_url
         self.timeout_seconds = timeout_seconds

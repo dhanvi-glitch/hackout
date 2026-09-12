@@ -31,6 +31,7 @@ from backend.api.optimizer import router as optimizer_router
 from backend.api.simulation import router as simulation_router
 from backend.api.alerts import router as alerts_router
 from backend.api.health import router as health_router
+from backend.api.location import router as location_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -266,6 +267,7 @@ app.include_router(optimizer_router, prefix="/api")
 app.include_router(simulation_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
+app.include_router(location_router, prefix="/api")
 
 
 @app.get("/")

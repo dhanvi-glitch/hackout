@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-09-12T10:18:41.233080+00:00",
+  "source": "LIVE",
+  "provider": "Open-Meteo",
+  "condition": "Mainly Clear",
+  "temperature_c": 36.1,
+  "solar_irradiance_wm2": 482.1,
+  "wind_speed_ms": 13.4,
+  "cloud_cover_pct": 25.0,
+  "advisory": null,
+  "latitude": 26.92,
+  "longitude": 71.91
+}

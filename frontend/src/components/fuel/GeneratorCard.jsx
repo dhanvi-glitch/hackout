@@ -33,7 +33,7 @@ export const GeneratorCard = ({ generator }) => {
           <div className="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800">
             <span className="text-slate-400 block text-[10px]">Current Output</span>
             <span className={`font-bold text-sm ${isRunning ? 'text-rose-400' : 'text-slate-500'}`}>
-              {g.currentOutputKw.toFixed(1)} kW / {g.maxCapacityKw} kW
+              {Number(g.currentOutputKw ?? 0).toFixed(1)} kW / {Number(g.maxCapacityKw ?? 45).toFixed(0)} kW
             </span>
           </div>
 

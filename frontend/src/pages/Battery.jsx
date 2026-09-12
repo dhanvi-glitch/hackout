@@ -30,8 +30,10 @@ export const Battery = () => {
     fetchBattery();
   }, []);
 
-  const handleToggleStormMode = () => {
-    setIsStormMode((prev) => !prev);
+  const handleToggleStormMode = async () => {
+    const nextState = !isStormMode;
+    setIsStormMode(nextState);
+    await apiService.toggleStormMode(nextState);
   };
 
   if (loading) return <LoadingSpinner label="Querying BESS Battery Management System..." />;

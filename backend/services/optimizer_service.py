@@ -49,12 +49,17 @@ class OptimizerService:
         # Check if Member 3's optimizer is available
         if self._member3_module is not None:
             try:
-                if hasattr(self._member3_module, "optimize"):
-                    res = self._member3_module.optimize(req.model_dump())
-                    return await self._format_and_save_async(res, req, db)
+                raw_res = None
+                if hasattr(self._member3_module, "optimize_dispatch"):
+                    raw_res = self._member3_module.optimize_dispatch(req.model_dump())
+                elif hasattr(self._member3_module, "optimize"):
+                    raw_res = self._member3_module.optimize(req.model_dump())
                 elif hasattr(self._member3_module, "run_milp_optimization"):
-                    res = self._member3_module.run_milp_optimization(req.model_dump())
-                    return await self._format_and_save_async(res, req, db)
+                    raw_res = self._member3_module.run_milp_optimization(req.model_dump())
+                
+                if raw_res is not None:
+                    res_dict = raw_res.to_dict() if hasattr(raw_res, "to_dict") else dict(raw_res)
+                    return await self._format_and_save_async(res_dict, req, db)
             except Exception as e:
                 logger.warning(f"Member 3 optimizer execution error ({e}); using fallback solver.")
 
@@ -138,14 +143,20 @@ class OptimizerService:
             dieselKw=data["diesel_kw"]
         )
 
+        m_dict = data.get("metrics", {}) if isinstance(data.get("metrics"), dict) else {}
+        cost_val = m_dict.get("estimatedCostPerHour", data.get("cost_per_hour", 4.25))
+        fuel_val = m_dict.get("fuelConsumptionLitersHour", data.get("fuel_burn_lh", 0.0))
+        co2_val = m_dict.get("co2EmissionsKgHour", data.get("co2_emissions_kgh", 0.0))
+        rel_val = m_dict.get("reliabilityPercent", data.get("reliability_pct", 100.0))
+
         metrics_detail = MetricsDetail(
             totalGenerationKw=data["total_supply_kw"],
             unmetDemandKw=data["unmet_demand_kw"],
             renewablePercent=data["renewable_percentage"],
-            estimatedCostPerHour=data.get("cost_per_hour", 4.25),
-            fuelConsumptionLitersHour=data.get("fuel_burn_lh", 0.0),
-            co2EmissionsKgHour=data.get("co2_emissions_kgh", 0.0),
-            reliabilityPercent=data.get("reliability_pct", 100.0)
+            estimatedCostPerHour=float(cost_val),
+            fuelConsumptionLitersHour=float(fuel_val),
+            co2EmissionsKgHour=float(co2_val),
+            reliabilityPercent=float(rel_val)
         )
 
         response = OptimizeResponse(

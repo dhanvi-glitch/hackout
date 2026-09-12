@@ -64,6 +64,8 @@ def get_mpc_inputs(
     fuel_remaining_l: float = 450.0,
     fuel_price_per_l: float = 1.45,
     storm_mode: bool = False,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Returns clean, standardized data dictionary tailored for Member 3's MPC/MILP optimizer.
@@ -80,7 +82,11 @@ def get_mpc_inputs(
     n_intervals = duration_hours * 4
 
     # 1. Weather series (LIVE -> CACHED -> FALLBACK)
-    weather_series = _weather_manager.get_forecast_15min(duration_hours=duration_hours)
+    weather_series = _weather_manager.get_forecast_15min(
+        duration_hours=duration_hours,
+        latitude=latitude,
+        longitude=longitude
+    )
 
     # 2. 96-timestep forecasts
     solar_kw = solar_forecaster.forecast_from_weather(weather_series)
@@ -108,6 +114,18 @@ def get_mpc_inputs(
         "p2_forecast": p2_96,
         "solar_forecast": solar_96,
         "wind_forecast": wind_96,
+        "p0_demand": p0_96,
+        "p1_demand": p1_96,
+        "p2_demand": p2_96,
+        "battery_capacity": 120.0,
+        "initial_battery_soc": battery_soc,
+        "min_soc": min_soc,
+        "max_soc": 95.0,
+        "diesel_available": True,
+        "diesel_capacity_kw": 60.0,
+        "fuel_remaining": fuel_remaining_l,
+        "fuel_price": fuel_price_per_l,
+        "storm_mode": storm_mode,
         "battery": {
             "capacity_kwh": 120.0,
             "current_soc_pct": battery_soc,
@@ -119,6 +137,7 @@ def get_mpc_inputs(
         },
         "diesel": {
             "rated_capacity_kw": 60.0,
+            "is_available": True,
             "fuel_remaining_l": fuel_remaining_l,
             "fuel_price_per_l": fuel_price_per_l,
             "marginal_burn_l_per_kwh": 0.26,
@@ -137,12 +156,16 @@ def get_mpc_inputs(
 # MEMBER 2: FASTAPI BACKEND SERVICE CONTRACTS
 # =====================================================================
 
-def get_api_forecast_payload(duration_hours: int = 24) -> List[Dict[str, Any]]:
+def get_api_forecast_payload(
+    duration_hours: int = 24,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> List[Dict[str, Any]]:
     """
     Returns data ready to be returned by Member 2's `GET /api/forecast`.
     Matches the backend `ForecastInterval` schema across 96 15-minute intervals.
     """
-    inputs = get_mpc_inputs(duration_hours=duration_hours)
+    inputs = get_mpc_inputs(duration_hours=duration_hours, latitude=latitude, longitude=longitude)
     n_intervals = inputs["horizon_intervals"]
     intervals: List[Dict[str, Any]] = []
 
@@ -199,23 +222,57 @@ def get_api_fuel_payload(
     }
 
 
-def refresh_weather_telemetry() -> WeatherSnapshot:
+def refresh_weather_telemetry(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> WeatherSnapshot:
     """
     Refreshes weather telemetry from Open-Meteo or fallback for Member 2's `POST /api/weather/refresh`.
     """
-    return _weather_manager.get_current_weather()
+    return _weather_manager.get_current_weather(latitude=latitude, longitude=longitude)
 
 
 def run_simulation_api(
     scenario: str,
     severity: float = 50.0,
     duration_hours: float = 24.0,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    solar_capacity_kw: Optional[float] = None,
+    battery_capacity_kwh: Optional[float] = None,
+    demand_kw: Optional[float] = None,
+    rain_probability: Optional[float] = None,
+    grid_price_per_kwh: Optional[float] = None,
+    optimization_mode: str = "balanced",
+    location_name: str = "Baramati Rural",
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
-    Executes what-if simulation for Member 2's `POST /api/simulation/run`.
+    Executes what-if simulation for Member 2's `POST /api/simulation/run` using location baseline.
     """
+    baseline = None
+    if latitude is not None and longitude is not None:
+        try:
+            inputs = get_mpc_inputs(duration_hours=int(duration_hours), latitude=latitude, longitude=longitude)
+            baseline = build_default_baseline_data(duration_hours=int(duration_hours))
+            baseline["demand_kw"] = inputs["demand_forecast"]
+            baseline["solar_kw"] = inputs["solar_forecast"]
+            baseline["wind_kw"] = inputs["wind_forecast"]
+        except Exception:
+            baseline = None
+
     return run_scenario(
+        baseline_data=baseline,
         scenario=scenario,
         severity=severity,
         duration_hours=duration_hours,
+        solar_capacity_kw=solar_capacity_kw,
+        battery_capacity_kwh=battery_capacity_kwh,
+        demand_kw=demand_kw,
+        rain_probability=rain_probability,
+        grid_price_per_kwh=grid_price_per_kwh,
+        optimization_mode=optimization_mode,
+        location_name=location_name,
+        **kwargs,
     )
+
