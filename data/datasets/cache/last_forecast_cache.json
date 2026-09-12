@@ -1,7 +1,7 @@
 {
   "source": "LIVE",
   "provider": "Open-Meteo (minutely_15)",
-  "created_at": "2026-09-12T10:20:17.147325+00:00",
+  "created_at": "2026-09-12T10:29:31.690181+00:00",
   "duration_hours": 24,
   "total_intervals": 96,
   "timestamps": [

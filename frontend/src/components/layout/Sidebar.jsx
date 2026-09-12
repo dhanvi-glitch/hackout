@@ -8,7 +8,6 @@ import {
   Sliders,
   Fuel,
   BrainCircuit,
-  Settings,
   ShieldCheck,
   MapPin,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const navItems = [
   { name: 'Load Management', path: '/loads', icon: Sliders },
   { name: 'Fuel Intelligence', path: '/fuel', icon: Fuel },
   { name: 'What-If Simulator', path: '/simulator', icon: BrainCircuit },
-  { name: 'System / Settings', path: '/settings', icon: Settings },
 ];
 
 export const Sidebar = () => {

@@ -10,7 +10,6 @@ import { Battery } from './pages/Battery';
 import { Loads } from './pages/Loads';
 import { Fuel } from './pages/Fuel';
 import { Simulator } from './pages/Simulator';
-import { Settings } from './pages/Settings';
 
 export function App() {
   return (
@@ -26,7 +25,6 @@ export function App() {
               <Route path="/loads" element={<Loads />} />
               <Route path="/fuel" element={<Fuel />} />
               <Route path="/simulator" element={<Simulator />} />
-              <Route path="/settings" element={<Settings />} />
             </Routes>
           </ErrorBoundary>
         </Layout>
